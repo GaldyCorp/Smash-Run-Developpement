@@ -1,6 +1,7 @@
 import pygame
 import json
 from tkinter import filedialog
+import shutil
 pygame.init()
 
 
@@ -83,7 +84,7 @@ class edit_menu():
         self.background=Image(0,0,dir+"/map.png")
         self.tool_bar = edit_tool_bar()
         self.cycle_tool = {1:self.tool_bar.home,2:self.tool_bar.save,3:self.tool_bar.select,4:self.tool_bar.ground}
-        self.cycle_idx = 1
+        self.cycle_idx = 3
         with open(self.dir+'/box.json') as json_file:
             self.data = json.load(json_file)
         self.K_home = False
@@ -158,7 +159,7 @@ class edit_menu():
                         self.active_line.rect.y+=1
 
 
-            return [0]
+            return 0
         else:
             for event in all_events:
                 if event.type == pygame.KEYDOWN:
@@ -184,6 +185,8 @@ class edit_menu():
                                 self.data["ground"].append(line.get_json())
                             with open(self.dir+'/box.json', "w") as json_file:
                                 json.dump(self.data, json_file, ensure_ascii=False)
+                        elif self.cycle_idx == 1:
+                            return 1
                             
                         if self.cycle_idx == 4:
                             self.in_edition = True
@@ -241,6 +244,10 @@ class edit_menu():
                             
 
             self.event([])
+            
+    def kill(self):
+        for sprite in self.group_sprite:
+            sprite.kill()
 
 class main_menu():
     def __init__(self):
@@ -284,7 +291,9 @@ class main_menu():
                                         json.dump({"ground":[]}, json_file, ensure_ascii=False)
                                 return [1, self.directory]
                             except:
-                                None
+                                self.dir_image=filedialog.askopenfilename()
+                                if self.dir_image[-4:]==".png":
+                                    shutil.copyfile(self.dir_image, self.directory+"/map.png")
                         except:
                             self.directory=None
             return self.event()
@@ -349,6 +358,12 @@ class main_window:
                     
         if self.editor_is_running:
             code_out = self.editor_menu.event(all_events)
+            if code_out == 1:
+                self.editor_menu.kill()
+                self.editor_menu=None
+                self.editor_is_running=False
+                self.call_main_menu()
+                self.menu_is_running=True
 
 
         for event in all_events:
