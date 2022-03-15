@@ -2,7 +2,7 @@ from random import *
 from re import X
 import pygame
 import json
-import pyperclip
+#import pyperclip
 vec = pygame.math.Vector2
 
 
@@ -33,16 +33,16 @@ class player(pygame.sprite.Sprite):
     def __init__(self,x,y,scale):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load("Image/player2.gif")
+        self.image_size=self.image.get_size()
+        self.scale=scale 
+        self.image = pygame.transform.scale(self.image, (self.image_size[0]//self.scale, self.image_size[1]//self.scale))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
         self.garvity = 0.8
         self.pos = vec(x,y)
         self.vel = vec(0,0)
-        self.acc = vec(0,0)
-        self.scale=scale
-        self.image_size=self.image.get_size()
-        self.image = pygame.transform.scale(self.image, (self.image_size[0]//self.scale, self.image_size[1]//self.scale))
+        self.acc = vec(0,0)       
         self.is_jump=False
         self.is_fall=True
         self.climb=False
@@ -50,7 +50,7 @@ class player(pygame.sprite.Sprite):
     
 
     def jump(self):
-        self.vel.y = -20
+        self.vel.y = -15
 
     def fall(self):
         None
@@ -65,6 +65,7 @@ class game:
     def __init__(self):
         self.group_sprite = pygame.sprite.Group()
         self.group_ground = pygame.sprite.Group()
+        self.group_no_ground = pygame.sprite.Group()
         self.list_sprite=[]
 
         with open('Image/Map/City4/box.json') as json_file:
@@ -75,7 +76,12 @@ class game:
             self.group_ground.add(temp_ground)
             self.list_sprite.append(temp_ground)
 
-        self.Player1 = player(100,300,1)
+        for no_ground in data.get("no_ground"):
+            temp_ground=Line(no_ground.get("x"),no_ground.get("y"), no_ground.get("color"), no_ground.get("size_x"), no_ground.get("size_y"))
+            self.group_no_ground.add(temp_ground)
+            self.list_sprite.append(temp_ground)
+
+        self.Player1 = player(100,300,2)
         self.key_left=False
         self.key_right=False
         self.key_up=False
@@ -105,7 +111,7 @@ class game:
                 self.Player1.is_jump=False
                 self.Player1.is_fall=True
                 self.hits = pygame.sprite.spritecollide(self.Player1, self.group_ground, False)
-                if self.hits:
+                if self.hits and not pygame.sprite.spritecollide(self.Player1, self.group_no_ground, False):
                     self.Player1.pos.y = self.hits[0].rect.top
                     self.Player1.vel.y = 0
 
