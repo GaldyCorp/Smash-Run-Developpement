@@ -2,7 +2,7 @@ from random import *
 from re import X
 import pygame
 import json
-import pyperclip
+#import pyperclip
 vec = pygame.math.Vector2
 
 
@@ -33,24 +33,29 @@ class player(pygame.sprite.Sprite):
     def __init__(self,x,y,scale):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load("Image/player2.gif")
+        self.image_size=self.image.get_size()
+        self.scale=scale 
+        self.image = pygame.transform.scale(self.image, (self.image_size[0]//self.scale, self.image_size[1]//self.scale))
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
         self.garvity = 0.8
         self.pos = vec(x,y)
         self.vel = vec(0,0)
-        self.acc = vec(0,0)
-        self.scale=scale
-        self.image_size=self.image.get_size()
-        self.image = pygame.transform.scale(self.image, (self.image_size[0]//self.scale, self.image_size[1]//self.scale))
+        self.acc = vec(0,0)       
         self.is_jump=False
         self.is_fall=True
         self.climb=False
+        self.key_left=False
+        self.key_right=False
+        self.key_up=False
+        self.key_down=False
 
-    
+    def is_touching(self, obj):
+        return len(pygame.sprite.spritecollide(self, obj, False))>0
 
     def jump(self):
-        self.vel.y = -20
+        self.vel.y = -15
 
     def fall(self):
         None
@@ -65,6 +70,7 @@ class game:
     def __init__(self):
         self.group_sprite = pygame.sprite.Group()
         self.group_ground = pygame.sprite.Group()
+        self.group_no_ground = pygame.sprite.Group()
         self.list_sprite=[]
 
         with open('Image/Map/City4/box.json') as json_file:
@@ -75,69 +81,95 @@ class game:
             self.group_ground.add(temp_ground)
             self.list_sprite.append(temp_ground)
 
-        self.Player1 = player(100,300,1)
-        self.key_left=False
-        self.key_right=False
-        self.key_up=False
-        self.key_down=False
+        for no_ground in data.get("no_ground"):
+            temp_ground=Line(no_ground.get("x"),no_ground.get("y"), no_ground.get("color"), no_ground.get("size_x"), no_ground.get("size_y"))
+            self.group_no_ground.add(temp_ground)
+            self.list_sprite.append(temp_ground)
+
+        self.Player1 = player(100,300,2)
+        self.Player2 = player(100,300,2)
+        self.all_players = [self.Player1, self.Player2]
+
         self.list_sprite.append(self.Player1)
+        self.list_sprite.append(self.Player2)
         for sprite in self.list_sprite:
             self.group_sprite.add(sprite)
-    
-    def is_touching_ground(self):
-        return len(pygame.sprite.spritecollide(self.Player1, self.group_ground, False))>0
  
     def event(self,all_events=None):
         if all_events==None:
-            self.Player1.acc = vec(0,self.Player1.garvity)
-            if self.is_touching_ground() or self.Player1.is_jump or self.Player1.is_fall:
-                self.Player1.is_fall=False
-                if self.key_left and self.Player1.rect.x>=10:
-                    self.Player1.acc.x = -PLAYER_ACC
-                if self.key_right and self.Player1.rect.x<=1820:
-                    self.Player1.acc.x = PLAYER_ACC
+            for player in self.all_players:
+                player.acc = vec(0,player.garvity)
+                if player.is_touching(self.group_ground) or player.is_jump or player.is_fall:
+                    player.is_fall=False
+                    if player.key_left and player.rect.x>=10:
+                        player.acc.x = -PLAYER_ACC
+                    if player.key_right and player.rect.x<=1820:
+                        player.acc.x = PLAYER_ACC
 
-            if self.is_touching_ground() and not self.Player1.is_jump and not self.Player1.is_fall:
-                if self.key_down:
-                    self.Player1.acc.x = self.Player1.acc.x*2
+                if player.is_touching(self.group_ground) and not player.is_jump and not player.is_fall:
+                    if player.key_down:
+                        player.acc.x = player.acc.x*2
 
-            if self.Player1.vel.y > 0: #si tombe
-                self.Player1.is_jump=False
-                self.Player1.is_fall=True
-                self.hits = pygame.sprite.spritecollide(self.Player1, self.group_ground, False)
-                if self.hits:
-                    self.Player1.pos.y = self.hits[0].rect.top
-                    self.Player1.vel.y = 0
+                if player.vel.y > 0: #si tombe
+                    player.is_jump=False
+                    player.is_fall=True
+                    self.hits = pygame.sprite.spritecollide(player, self.group_ground, False)
+                    if self.hits and not pygame.sprite.spritecollide(player, self.group_no_ground, False):
+                        player.pos.y = self.hits[0].rect.top
+                        player.vel.y = 0
 
-            if self.key_up and self.is_touching_ground():
-                self.Player1.is_jump=True
-                self.Player1.jump()
+                if player.key_up and player.is_touching(self.group_ground):
+                    player.is_jump=True
+                    player.jump()
 
-            self.Player1.acc.x += self.Player1.vel.x * PLAYER_FRICTION
-            self.Player1.vel += self.Player1.acc
-            self.Player1.pos += self.Player1.vel + 0.5 * self.Player1.acc
-            self.Player1.rect.midbottom = self.Player1.pos
+                player.acc.x += player.vel.x * PLAYER_FRICTION
+                player.vel += player.acc
+                player.pos += player.vel + 0.5 * player.acc
+                player.rect.midbottom = player.pos
 
         else:
             for event in all_events:
                 if event.type == pygame.KEYDOWN:
+                    #Player1
                     if event.key == pygame.K_LEFT:
-                        self.key_left = True
+                        self.Player1.key_left = True
                     if event.key == pygame.K_RIGHT:
-                        self.key_right = True
+                        self.Player1.key_right = True
                     if event.key == pygame.K_UP:
-                        self.key_up = True
+                        self.Player1.key_up = True
                     if event.key == pygame.K_DOWN:
-                        self.key_down = True
+                        self.Player1.key_down = True
+
+                    #Player2
+                    if event.key == pygame.K_q:
+                        self.Player2.key_left = True
+                    if event.key == pygame.K_d:
+                        self.Player2.key_right = True
+                    if event.key == pygame.K_z:
+                        self.Player2.key_up = True
+                    if event.key == pygame.K_s:
+                        self.Player2.key_down = True
+
                 if event.type == pygame.KEYUP:
+                    #Player1
                     if event.key == pygame.K_LEFT:
-                        self.key_left = False   
+                        self.Player1.key_left = False   
                     if event.key == pygame.K_RIGHT:
-                        self.key_right = False 
+                        self.Player1.key_right = False 
                     if event.key == pygame.K_UP:
-                        self.key_up = False
+                        self.Player1.key_up = False
                     if event.key == pygame.K_DOWN:
-                        self.key_down = False
+                        self.Player1.key_down = False
+                    
+                    #Player2
+                    if event.key == pygame.K_q:
+                        self.Player2.key_left = False
+                    if event.key == pygame.K_d:
+                        self.Player2.key_right = False
+                    if event.key == pygame.K_z:
+                        self.Player2.key_up = False
+                    if event.key == pygame.K_s:
+                        self.Player2.key_down = False
                     
             self.event()
 
