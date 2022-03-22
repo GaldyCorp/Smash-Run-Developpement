@@ -1,3 +1,0 @@
-2 a 4 joueur (1 loup, autre coureur)
-jeu : 2D, parkour, platforme, multi
- 
