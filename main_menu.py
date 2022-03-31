@@ -1,6 +1,7 @@
 import imp
 import pygame
 from smrun_lib import *
+from split_game import *
 from tkinter import filedialog
 import json
 import shutil
