@@ -110,11 +110,9 @@ class edit_menu():
                     if event.key == pygame.K_HOME:
                         self.K_home = False
                         if self.cycle_idx == 2:
-                            self.data={"ground":[],"no_ground":[]}
+                            self.data={"ground":[]}
                             for line in self.all_line:
                                 self.data["ground"].append(line.get_json())
-                                self.data["no_ground"].append(Line(line.rect.x,line.rect.y+1,"green",1,line.size_y-1).get_json())
-                                self.data["no_ground"].append(Line(line.rect.x+line.size_x,line.rect.y+1,"green",1,line.size_y-1).get_json())
                             with open(self.dir+'/box.json', "w") as json_file:
                                 json.dump(self.data, json_file, ensure_ascii=False)
                         elif self.cycle_idx == 1:
